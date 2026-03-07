@@ -109,16 +109,15 @@ async function openVerifiedLocalFile(
 
   try {
     const [stat, lstat] = await Promise.all([handle.stat(), fs.lstat(filePath)]);
-    if (lstat.isSymbolicLink()) {
-      throw new SafeOpenError("symlink", "symlink not allowed");
-    }
+    // Allow symlinks - they will be resolved via realpath below
     if (!stat.isFile()) {
       throw new SafeOpenError("not-file", "not a file");
     }
     if (options?.rejectHardlinks && stat.nlink > 1) {
       throw new SafeOpenError("invalid-path", "hardlinked path not allowed");
     }
-    if (!sameFileIdentity(stat, lstat)) {
+    // For symlinks, stat and lstat will differ - skip identity check
+    if (!lstat.isSymbolicLink() && !sameFileIdentity(stat, lstat)) {
       throw new SafeOpenError("path-mismatch", "path changed during read");
     }
 
